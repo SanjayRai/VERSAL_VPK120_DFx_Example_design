@@ -1,1 +1,1 @@
-vivado -mode batch -source vivado_project_build.tcl 
+vivado -mode batch -source vivado_project.tcl 
