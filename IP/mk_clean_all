@@ -1,0 +1,6 @@
+rm -rf .Xil/
+rm -rf project_X/
+rm -rf vivado*.jou
+rm -rf vivado*.log
+rm -rf user_role/
+rm -rf vpk120_cips_shell_top/
