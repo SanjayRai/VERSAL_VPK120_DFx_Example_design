@@ -29,7 +29,7 @@ To view or re-customize the IPI generated IP in Vivado GUI :
     2. vivado -source vivado_project.tcl
     3. customize_BD
 
-#VersalPremium VPK120 Specific  Tandem + DFx  enablement parameters.
+#Versal (works for both VCK190 & VPK120 ) Specific  Tandem + DFx  enablement parameters.
 # PR Enablement
 set_param hd.enablePR 2591
 set_param bitstream.enablePR 8519
@@ -41,3 +41,6 @@ set_param bitstream.enablePC 7635
 # PR + PC Enablement (Tandem)
 set_param hd.enableTandemPR 6379
 set_param bitstream.enableTandemPR 4731
+
+#  Seperate Stage_1 and Stage_2  during Tandem pdi generation  for testin gpurpouses.
+set_property HD.TANDEM_BITSTREAMS SEPARATE [current_design]
