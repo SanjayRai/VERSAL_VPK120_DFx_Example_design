@@ -124,8 +124,10 @@ if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
 xilinx.com:ip:axi_bram_ctrl:4.1\
 xilinx.com:ip:emb_mem_gen:1.0\
+xilinx.com:ip:axis_ila:1.1\
 xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:axi_cdma:4.1\
+xilinx.com:ip:axi_dbg_hub:2.0\
 xilinx.com:ip:axi_noc:1.0\
 xilinx.com:ip:proc_sys_reset:5.0\
 "
@@ -197,6 +199,11 @@ proc create_root_design { parentCell } {
    CONFIG.INI_STRATEGY {load} \
    ] $CPM2PL_S_AXI_INI
 
+  set DBG_HUB_INI [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:inimm_rtl:1.0 DBG_HUB_INI ]
+  set_property -dict [ list \
+   CONFIG.INI_STRATEGY {load} \
+   ] $DBG_HUB_INI
+
   set PL2DDR_M_AXI_INI [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:inimm_rtl:1.0 PL2DDR_M_AXI_INI ]
   set_property -dict [ list \
    CONFIG.COMPUTED_STRATEGY {driver} \
@@ -213,7 +220,7 @@ proc create_root_design { parentCell } {
   set CPM_areset_n [ create_bd_port -dir I -type rst CPM_areset_n ]
   set CPM_clk [ create_bd_port -dir I -type clk CPM_clk ]
   set_property -dict [ list \
-   CONFIG.ASSOCIATED_BUSIF {PL2DDR_M_AXI_INI:PS2PL_S_AXI_INI:CPM2PL_S_AXI_INI} \
+   CONFIG.ASSOCIATED_BUSIF {PL2DDR_M_AXI_INI:PS2PL_S_AXI_INI:CPM2PL_S_AXI_INI:DBG_HUB_INI} \
  ] $CPM_clk
 
   # Create instance: CPM2PL_AXI_BRAM, and set properties
@@ -227,6 +234,15 @@ proc create_root_design { parentCell } {
   set_property -dict [ list \
    CONFIG.MEMORY_TYPE {True_Dual_Port_RAM} \
  ] $CPM2PL_AXI_BRAM_bram
+
+  # Create instance: CPM2PL_AXI_MM, and set properties
+  set CPM2PL_AXI_MM [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_ila:1.1 CPM2PL_AXI_MM ]
+  set_property -dict [ list \
+   CONFIG.C_BRAM_CNT {0} \
+   CONFIG.C_MON_TYPE {Interface_Monitor} \
+   CONFIG.C_SLOT_0_AXI_R_SEL_TRIG {0} \
+   CONFIG.C_SLOT_0_AXI_W_SEL_TRIG {0} \
+ ] $CPM2PL_AXI_MM
 
   # Create instance: CPM_PL2DDR_IC, and set properties
   set CPM_PL2DDR_IC [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 CPM_PL2DDR_IC ]
@@ -255,6 +271,39 @@ proc create_root_design { parentCell } {
   set_property -dict [ list \
    CONFIG.MEMORY_TYPE {True_Dual_Port_RAM} \
  ] $PS2PL_AXI_BRAM_bram
+
+  # Create instance: PS2PL_AXI_MM, and set properties
+  set PS2PL_AXI_MM [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_ila:1.1 PS2PL_AXI_MM ]
+  set_property -dict [ list \
+   CONFIG.C_BRAM_CNT {0} \
+   CONFIG.C_MON_TYPE {Interface_Monitor} \
+   CONFIG.C_SLOT_0_AXI_R_SEL_TRIG {0} \
+   CONFIG.C_SLOT_0_AXI_W_SEL_TRIG {0} \
+ ] $PS2PL_AXI_MM
+
+  # Create instance: axi_dbg_hub_0, and set properties
+  set axi_dbg_hub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dbg_hub:2.0 axi_dbg_hub_0 ]
+
+  # Create instance: axi_noc_0, and set properties
+  set axi_noc_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_noc:1.0 axi_noc_0 ]
+  set_property -dict [ list \
+   CONFIG.NUM_NSI {1} \
+   CONFIG.NUM_SI {0} \
+ ] $axi_noc_0
+
+  set_property -dict [ list \
+   CONFIG.APERTURES {{0x202_0000_0000 1G}} \
+   CONFIG.CATEGORY {pl} \
+ ] [get_bd_intf_pins /axi_noc_0/M00_AXI]
+
+  set_property -dict [ list \
+   CONFIG.INI_STRATEGY {load} \
+   CONFIG.CONNECTIONS {M00_AXI { read_bw {1720} write_bw {1720} read_avg_burst {4} write_avg_burst {4}} } \
+ ] [get_bd_intf_pins /axi_noc_0/S00_INI]
+
+  set_property -dict [ list \
+   CONFIG.ASSOCIATED_BUSIF {M00_AXI} \
+ ] [get_bd_pins /axi_noc_0/aclk0]
 
   # Create instance: axi_noc_INI_CPM_PL, and set properties
   set axi_noc_INI_CPM_PL [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_noc:1.0 axi_noc_INI_CPM_PL ]
@@ -329,21 +378,26 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net PL2DDR_CDMA_M_AXI [get_bd_intf_pins PL2DDR_CDMA/M_AXI] [get_bd_intf_pins axi_noc_INI_PL2DDR/S00_AXI]
   connect_bd_intf_net -intf_net S00_INI_0_1 [get_bd_intf_ports CPM2PL_S_AXI_INI] [get_bd_intf_pins axi_noc_INI_CPM_PL/S00_INI]
   connect_bd_intf_net -intf_net S00_INI_0_2 [get_bd_intf_ports PS2PL_S_AXI_INI] [get_bd_intf_pins axi_noc_INI_PS2PL/S00_INI]
+  connect_bd_intf_net -intf_net S00_INI_0_3 [get_bd_intf_ports DBG_HUB_INI] [get_bd_intf_pins axi_noc_0/S00_INI]
   connect_bd_intf_net -intf_net axi_noc_0_M00_AXI [get_bd_intf_pins CPM_PL2DDR_IC/S00_AXI] [get_bd_intf_pins axi_noc_INI_CPM_PL/M00_AXI]
   connect_bd_intf_net -intf_net axi_noc_0_M00_AXI1 [get_bd_intf_pins PS2PL_AXI_BRAM/S_AXI] [get_bd_intf_pins axi_noc_INI_PS2PL/M00_AXI]
+connect_bd_intf_net -intf_net [get_bd_intf_nets axi_noc_0_M00_AXI1] [get_bd_intf_pins PS2PL_AXI_MM/SLOT_0_AXI] [get_bd_intf_pins axi_noc_INI_PS2PL/M00_AXI]
+  connect_bd_intf_net -intf_net axi_noc_0_M00_AXI2 [get_bd_intf_pins axi_dbg_hub_0/S_AXI] [get_bd_intf_pins axi_noc_0/M00_AXI]
   connect_bd_intf_net -intf_net axi_noc_1_M00_INI [get_bd_intf_ports PL2DDR_M_AXI_INI] [get_bd_intf_pins axi_noc_INI_PL2DDR/M00_INI]
   connect_bd_intf_net -intf_net smartconnect_0_M00_AXI [get_bd_intf_pins CPM2PL_AXI_BRAM/S_AXI] [get_bd_intf_pins CPM_PL2DDR_IC/M00_AXI]
+connect_bd_intf_net -intf_net [get_bd_intf_nets smartconnect_0_M00_AXI] [get_bd_intf_pins CPM2PL_AXI_MM/SLOT_0_AXI] [get_bd_intf_pins CPM_PL2DDR_IC/M00_AXI]
   connect_bd_intf_net -intf_net smartconnect_0_M01_AXI [get_bd_intf_pins CPM_PL2DDR_IC/M01_AXI] [get_bd_intf_pins PL2DDR_CDMA/S_AXI_LITE]
 
   # Create port connections
-  connect_bd_net -net CPM_areset_n_1 [get_bd_pins CPM2PL_AXI_BRAM/s_axi_aresetn] [get_bd_pins CPM_PL2DDR_IC/aresetn] [get_bd_pins PL2DDR_CDMA/s_axi_lite_aresetn] [get_bd_pins PS2PL_AXI_BRAM/s_axi_aresetn] [get_bd_pins proc_sys_reset_0/interconnect_aresetn]
+  connect_bd_net -net CPM_areset_n_1 [get_bd_pins CPM2PL_AXI_BRAM/s_axi_aresetn] [get_bd_pins CPM2PL_AXI_MM/resetn] [get_bd_pins CPM_PL2DDR_IC/aresetn] [get_bd_pins PL2DDR_CDMA/s_axi_lite_aresetn] [get_bd_pins PS2PL_AXI_BRAM/s_axi_aresetn] [get_bd_pins PS2PL_AXI_MM/resetn] [get_bd_pins axi_dbg_hub_0/aresetn] [get_bd_pins proc_sys_reset_0/interconnect_aresetn]
   connect_bd_net -net CPM_areset_n_2 [get_bd_ports CPM_areset_n] [get_bd_pins proc_sys_reset_0/ext_reset_in]
-  connect_bd_net -net CPM_clk_1 [get_bd_ports CPM_clk] [get_bd_pins CPM2PL_AXI_BRAM/s_axi_aclk] [get_bd_pins CPM_PL2DDR_IC/aclk] [get_bd_pins PL2DDR_CDMA/m_axi_aclk] [get_bd_pins PL2DDR_CDMA/s_axi_lite_aclk] [get_bd_pins PS2PL_AXI_BRAM/s_axi_aclk] [get_bd_pins axi_noc_INI_CPM_PL/aclk0] [get_bd_pins axi_noc_INI_PL2DDR/aclk0] [get_bd_pins axi_noc_INI_PS2PL/aclk0] [get_bd_pins proc_sys_reset_0/slowest_sync_clk]
+  connect_bd_net -net CPM_clk_1 [get_bd_ports CPM_clk] [get_bd_pins CPM2PL_AXI_BRAM/s_axi_aclk] [get_bd_pins CPM2PL_AXI_MM/clk] [get_bd_pins CPM_PL2DDR_IC/aclk] [get_bd_pins PL2DDR_CDMA/m_axi_aclk] [get_bd_pins PL2DDR_CDMA/s_axi_lite_aclk] [get_bd_pins PS2PL_AXI_BRAM/s_axi_aclk] [get_bd_pins PS2PL_AXI_MM/clk] [get_bd_pins axi_dbg_hub_0/aclk] [get_bd_pins axi_noc_0/aclk0] [get_bd_pins axi_noc_INI_CPM_PL/aclk0] [get_bd_pins axi_noc_INI_PL2DDR/aclk0] [get_bd_pins axi_noc_INI_PS2PL/aclk0] [get_bd_pins proc_sys_reset_0/slowest_sync_clk]
 
   # Create address segments
   assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces PL2DDR_CDMA/Data] [get_bd_addr_segs PL2DDR_M_AXI_INI/Reg] -force
   assign_bd_address -offset 0x020100000000 -range 0x00008000 -target_address_space [get_bd_addr_spaces CPM2PL_S_AXI_INI] [get_bd_addr_segs CPM2PL_AXI_BRAM/S_AXI/Mem0] -force
   assign_bd_address -offset 0x020100010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces CPM2PL_S_AXI_INI] [get_bd_addr_segs PL2DDR_CDMA/S_AXI_LITE/Reg] -force
+  assign_bd_address -offset 0x020200000000 -range 0x00200000 -target_address_space [get_bd_addr_spaces DBG_HUB_INI] [get_bd_addr_segs axi_dbg_hub_0/S_AXI_DBG_HUB/Mem0] -force
   assign_bd_address -offset 0x020180000000 -range 0x00008000 -target_address_space [get_bd_addr_spaces PS2PL_S_AXI_INI] [get_bd_addr_segs PS2PL_AXI_BRAM/S_AXI/Mem0] -force
 
 
