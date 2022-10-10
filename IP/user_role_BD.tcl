@@ -218,7 +218,7 @@ proc create_root_design { parentCell } {
 
   # Create ports
   set CPM_areset_n [ create_bd_port -dir I -type rst CPM_areset_n ]
-  set CPM_clk [ create_bd_port -dir I -type clk CPM_clk ]
+  set CPM_clk [ create_bd_port -dir I -type clk -freq_hz 99999901 CPM_clk ]
   set_property -dict [ list \
    CONFIG.ASSOCIATED_BUSIF {PL2DDR_M_AXI_INI:PS2PL_S_AXI_INI:CPM2PL_S_AXI_INI:DBG_HUB_INI} \
  ] $CPM_clk
@@ -396,7 +396,7 @@ connect_bd_intf_net -intf_net [get_bd_intf_nets smartconnect_0_M00_AXI] [get_bd_
   # Create address segments
   assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces PL2DDR_CDMA/Data] [get_bd_addr_segs PL2DDR_M_AXI_INI/Reg] -force
   assign_bd_address -offset 0x020100000000 -range 0x00008000 -target_address_space [get_bd_addr_spaces CPM2PL_S_AXI_INI] [get_bd_addr_segs CPM2PL_AXI_BRAM/S_AXI/Mem0] -force
-  assign_bd_address -offset 0x020100010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces CPM2PL_S_AXI_INI] [get_bd_addr_segs PL2DDR_CDMA/S_AXI_LITE/Reg] -force
+  assign_bd_address -offset 0x020100008000 -range 0x00008000 -target_address_space [get_bd_addr_spaces CPM2PL_S_AXI_INI] [get_bd_addr_segs PL2DDR_CDMA/S_AXI_LITE/Reg] -force
   assign_bd_address -offset 0x020200000000 -range 0x00200000 -target_address_space [get_bd_addr_spaces DBG_HUB_INI] [get_bd_addr_segs axi_dbg_hub_0/S_AXI_DBG_HUB/Mem0] -force
   assign_bd_address -offset 0x020180000000 -range 0x00008000 -target_address_space [get_bd_addr_spaces PS2PL_S_AXI_INI] [get_bd_addr_segs PS2PL_AXI_BRAM/S_AXI/Mem0] -force
 

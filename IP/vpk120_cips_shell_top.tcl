@@ -129,7 +129,11 @@ set bCheckIPsPassed 1
 set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
+xilinx.com:ip:axi_bram_ctrl:4.1\
+xilinx.com:ip:emb_mem_gen:1.0\
 xilinx.com:ip:axi_noc:1.0\
+xilinx.com:ip:axis_ila:1.1\
+xilinx.com:ip:proc_sys_reset:5.0\
 xilinx.com:ip:versal_cips:3.2\
 xilinx.com:ip:xlconstant:1.1\
 "
@@ -262,6 +266,15 @@ proc create_hier_cell_static_shell { parentCell nameHier } {
   # Create pins
   create_bd_pin -dir O -from 0 -to 0 -type rst CPM_axi_aresetn
   create_bd_pin -dir O -type clk CPM_clk
+
+  # Create instance: axi_bram_ctrl_0, and set properties
+  set axi_bram_ctrl_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_bram_ctrl:4.1 axi_bram_ctrl_0 ]
+
+  # Create instance: axi_bram_ctrl_0_bram, and set properties
+  set axi_bram_ctrl_0_bram [ create_bd_cell -type ip -vlnv xilinx.com:ip:emb_mem_gen:1.0 axi_bram_ctrl_0_bram ]
+  set_property -dict [ list \
+   CONFIG.MEMORY_TYPE {True_Dual_Port_RAM} \
+ ] $axi_bram_ctrl_0_bram
 
   # Create instance: axi_noc_0, and set properties
   set axi_noc_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_noc:1.0 axi_noc_0 ]
@@ -477,13 +490,18 @@ proc create_hier_cell_static_shell { parentCell nameHier } {
    CONFIG.NUM_CLKS {10} \
    CONFIG.NUM_MC {2} \
    CONFIG.NUM_MCP {4} \
-   CONFIG.NUM_MI {0} \
+   CONFIG.NUM_MI {1} \
    CONFIG.NUM_NMI {3} \
    CONFIG.NUM_NSI {1} \
    CONFIG.NUM_SI {9} \
    CONFIG.sys_clk0_BOARD_INTERFACE {lpddr4_clk1} \
    CONFIG.sys_clk1_BOARD_INTERFACE {lpddr4_clk2} \
  ] $axi_noc_0
+
+  set_property -dict [ list \
+   CONFIG.APERTURES {{0x201_0000_0000 1G}} \
+   CONFIG.CATEGORY {pl} \
+ ] [get_bd_intf_pins /static_shell/axi_noc_0/M00_AXI]
 
   set_property -dict [ list \
    CONFIG.REGION {0} \
@@ -544,8 +562,8 @@ proc create_hier_cell_static_shell { parentCell nameHier } {
  ] [get_bd_intf_pins /static_shell/axi_noc_0/S07_AXI]
 
   set_property -dict [ list \
-   CONFIG.CONNECTIONS {MC_0 { read_bw {1720} write_bw {1720} read_avg_burst {4} write_avg_burst {4}} M00_INI { read_bw {1720} write_bw {1720}} } \
-   CONFIG.DEST_IDS {} \
+   CONFIG.CONNECTIONS {MC_0 { read_bw {1720} write_bw {1720} read_avg_burst {4} write_avg_burst {4}} M00_AXI { read_bw {1720} write_bw {1720} read_avg_burst {4} write_avg_burst {4}} M00_INI { read_bw {1720} write_bw {1720}} } \
+   CONFIG.DEST_IDS {M00_AXI:0x40} \
    CONFIG.CATEGORY {ps_pcie} \
  ] [get_bd_intf_pins /static_shell/axi_noc_0/S08_AXI]
 
@@ -586,8 +604,20 @@ proc create_hier_cell_static_shell { parentCell nameHier } {
  ] [get_bd_pins /static_shell/axi_noc_0/aclk8]
 
   set_property -dict [ list \
-   CONFIG.ASSOCIATED_BUSIF {} \
+   CONFIG.ASSOCIATED_BUSIF {M00_AXI} \
  ] [get_bd_pins /static_shell/axi_noc_0/aclk9]
+
+  # Create instance: axis_ila_SHELL_BRAM, and set properties
+  set axis_ila_SHELL_BRAM [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_ila:1.1 axis_ila_SHELL_BRAM ]
+  set_property -dict [ list \
+   CONFIG.C_BRAM_CNT {0} \
+   CONFIG.C_MON_TYPE {Interface_Monitor} \
+   CONFIG.C_SLOT_0_AXI_R_SEL_TRIG {0} \
+   CONFIG.C_SLOT_0_AXI_W_SEL_TRIG {0} \
+ ] $axis_ila_SHELL_BRAM
+
+  # Create instance: proc_sys_reset_0, and set properties
+  set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
 
   # Create instance: versal_cips_0, and set properties
   set versal_cips_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:versal_cips:3.2 versal_cips_0 ]
@@ -733,7 +763,7 @@ proc create_hier_cell_static_shell { parentCell nameHier } {
      SMON_INTERFACE_TO_USE {None}\
      SMON_TEMP_AVERAGING_SAMPLES {0}\
    } \
-   CONFIG.PS_PMC_CONFIG_APPLIED {1} \
+   CONFIG.PS_PMC_CONFIG_APPLIED {0} \
  ] $versal_cips_0
 
   # Create instance: xlconstant_0, and set properties
@@ -742,17 +772,18 @@ proc create_hier_cell_static_shell { parentCell nameHier } {
    CONFIG.CONST_VAL {0} \
  ] $xlconstant_0
 
-  # Create instance: xlconstant_1, and set properties
-  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
-
   # Create interface connections
   connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins DBG_HUB_INI] [get_bd_intf_pins axi_noc_0/M02_INI]
   connect_bd_intf_net -intf_net PCIE_REF_CLK_1 [get_bd_intf_pins PCIE_REF_CLK] [get_bd_intf_pins versal_cips_0/gt_refclk1]
   connect_bd_intf_net -intf_net S00_INI_0_1 [get_bd_intf_pins PL2DDR_S_AXI_INI] [get_bd_intf_pins axi_noc_0/S00_INI]
+  connect_bd_intf_net -intf_net axi_bram_ctrl_0_BRAM_PORTA [get_bd_intf_pins axi_bram_ctrl_0/BRAM_PORTA] [get_bd_intf_pins axi_bram_ctrl_0_bram/BRAM_PORTA]
+  connect_bd_intf_net -intf_net axi_bram_ctrl_0_BRAM_PORTB [get_bd_intf_pins axi_bram_ctrl_0/BRAM_PORTB] [get_bd_intf_pins axi_bram_ctrl_0_bram/BRAM_PORTB]
   connect_bd_intf_net -intf_net axi_noc_0_CH0_LPDDR4_0 [get_bd_intf_pins ch0_lpddr4_trip1] [get_bd_intf_pins axi_noc_0/CH0_LPDDR4_0]
   connect_bd_intf_net -intf_net axi_noc_0_CH0_LPDDR4_1 [get_bd_intf_pins ch0_lpddr4_trip2] [get_bd_intf_pins axi_noc_0/CH0_LPDDR4_1]
   connect_bd_intf_net -intf_net axi_noc_0_CH1_LPDDR4_0 [get_bd_intf_pins ch1_lpddr4_trip1] [get_bd_intf_pins axi_noc_0/CH1_LPDDR4_0]
   connect_bd_intf_net -intf_net axi_noc_0_CH1_LPDDR4_1 [get_bd_intf_pins ch1_lpddr4_trip2] [get_bd_intf_pins axi_noc_0/CH1_LPDDR4_1]
+  connect_bd_intf_net -intf_net axi_noc_0_M00_AXI [get_bd_intf_pins axi_bram_ctrl_0/S_AXI] [get_bd_intf_pins axi_noc_0/M00_AXI]
+  connect_bd_intf_net -intf_net [get_bd_intf_nets axi_noc_0_M00_AXI] [get_bd_intf_pins axi_noc_0/M00_AXI] [get_bd_intf_pins axis_ila_SHELL_BRAM/SLOT_0_AXI]
   connect_bd_intf_net -intf_net axi_noc_0_M00_INI [get_bd_intf_pins CPM2PL_M_AXI_INI] [get_bd_intf_pins axi_noc_0/M00_INI]
   connect_bd_intf_net -intf_net axi_noc_0_M01_INI [get_bd_intf_pins PS2PL_M_AXI_INI] [get_bd_intf_pins axi_noc_0/M01_INI]
   connect_bd_intf_net -intf_net lpddr4_clk1_1 [get_bd_intf_pins lpddr4_clk1] [get_bd_intf_pins axi_noc_0/sys_clk0]
@@ -770,6 +801,7 @@ proc create_hier_cell_static_shell { parentCell nameHier } {
 
   # Create port connections
   connect_bd_net -net versal_cips_0_cpm_pcie_noc_axi0_clk [get_bd_pins axi_noc_0/aclk8] [get_bd_pins versal_cips_0/cpm_pcie_noc_axi0_clk]
+  connect_bd_net -net versal_cips_0_dma1_axi_aresetn [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins versal_cips_0/dma1_axi_aresetn]
   connect_bd_net -net versal_cips_0_fpd_axi_noc_axi0_clk [get_bd_pins axi_noc_0/aclk6] [get_bd_pins versal_cips_0/fpd_axi_noc_axi0_clk]
   connect_bd_net -net versal_cips_0_fpd_axi_noc_axi1_clk [get_bd_pins axi_noc_0/aclk7] [get_bd_pins versal_cips_0/fpd_axi_noc_axi1_clk]
   connect_bd_net -net versal_cips_0_fpd_cci_noc_axi0_clk [get_bd_pins axi_noc_0/aclk0] [get_bd_pins versal_cips_0/fpd_cci_noc_axi0_clk]
@@ -777,10 +809,10 @@ proc create_hier_cell_static_shell { parentCell nameHier } {
   connect_bd_net -net versal_cips_0_fpd_cci_noc_axi2_clk [get_bd_pins axi_noc_0/aclk2] [get_bd_pins versal_cips_0/fpd_cci_noc_axi2_clk]
   connect_bd_net -net versal_cips_0_fpd_cci_noc_axi3_clk [get_bd_pins axi_noc_0/aclk3] [get_bd_pins versal_cips_0/fpd_cci_noc_axi3_clk]
   connect_bd_net -net versal_cips_0_lpd_axi_noc_clk [get_bd_pins axi_noc_0/aclk4] [get_bd_pins versal_cips_0/lpd_axi_noc_clk]
-  connect_bd_net -net versal_cips_0_pl0_ref_clk [get_bd_pins CPM_clk] [get_bd_pins axi_noc_0/aclk9] [get_bd_pins versal_cips_0/dma1_intrfc_clk] [get_bd_pins versal_cips_0/pl0_ref_clk]
+  connect_bd_net -net versal_cips_0_pl0_ref_clk [get_bd_pins CPM_clk] [get_bd_pins axi_bram_ctrl_0/s_axi_aclk] [get_bd_pins axi_noc_0/aclk9] [get_bd_pins axis_ila_SHELL_BRAM/clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins versal_cips_0/dma1_intrfc_clk] [get_bd_pins versal_cips_0/pl0_ref_clk]
   connect_bd_net -net versal_cips_0_pmc_axi_noc_axi0_clk [get_bd_pins axi_noc_0/aclk5] [get_bd_pins versal_cips_0/pmc_axi_noc_axi0_clk]
   connect_bd_net -net xlconstant_1_dout [get_bd_pins versal_cips_0/bridge1_usr_irq_req] [get_bd_pins versal_cips_0/cpm_irq0] [get_bd_pins versal_cips_0/cpm_irq1] [get_bd_pins xlconstant_0/dout]
-  connect_bd_net -net xlconstant_1_dout1 [get_bd_pins CPM_axi_aresetn] [get_bd_pins versal_cips_0/dma1_intrfc_resetn] [get_bd_pins xlconstant_1/dout]
+  connect_bd_net -net xlconstant_1_dout1 [get_bd_pins CPM_axi_aresetn] [get_bd_pins axi_bram_ctrl_0/s_axi_aresetn] [get_bd_pins axis_ila_SHELL_BRAM/resetn] [get_bd_pins proc_sys_reset_0/interconnect_aresetn] [get_bd_pins versal_cips_0/dma1_intrfc_resetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -853,11 +885,15 @@ proc create_root_design { parentCell } {
   set_property -dict [ list \
    CONFIG.ACTIVE_SIM_BD {user_role.bd} \
    CONFIG.ACTIVE_SYNTH_BD {user_role.bd} \
-   CONFIG.ENABLE_DFX {0} \
+   CONFIG.ENABLE_DFX {true} \
    CONFIG.LIST_SIM_BD {user_role.bd} \
    CONFIG.LIST_SYNTH_BD {user_role.bd} \
-   CONFIG.LOCK_PROPAGATE {0} \
+   CONFIG.LOCK_PROPAGATE {true} \
  ] $user_role_0
+  set_property APERTURES {{0x201_0000_0000 64K}} [get_bd_intf_pins /user_role_0/CPM2PL_S_AXI_INI]
+  set_property APERTURES {{0x202_0000_0000 2M}} [get_bd_intf_pins /user_role_0/DBG_HUB_INI]
+  set_property APERTURES {{0x0 2G} {0x8_0000_0000 8G}} [get_bd_intf_pins /user_role_0/PL2DDR_M_AXI_INI]
+  set_property APERTURES {{0x201_8000_0000 32K}} [get_bd_intf_pins /user_role_0/PS2PL_S_AXI_INI]
 
   # Create interface connections
   connect_bd_intf_net -intf_net axi_noc_0_CH0_LPDDR4_0 [get_bd_intf_ports ch0_lpddr4_trip1] [get_bd_intf_pins static_shell/ch0_lpddr4_trip1]
@@ -881,7 +917,8 @@ proc create_root_design { parentCell } {
   assign_bd_address -offset 0x00000000 -range 0x80000000 -target_address_space [get_bd_addr_spaces user_role_0/PL2DDR_CDMA/Data] [get_bd_addr_segs static_shell/axi_noc_0/S00_INI/C1_DDR_LOW0x2] -force
   assign_bd_address -offset 0x000800000000 -range 0x000180000000 -target_address_space [get_bd_addr_spaces user_role_0/PL2DDR_CDMA/Data] [get_bd_addr_segs static_shell/axi_noc_0/S00_INI/C1_DDR_LOW1x2] -force
   assign_bd_address -offset 0x020100000000 -range 0x00008000 -target_address_space [get_bd_addr_spaces static_shell/versal_cips_0/CPM_PCIE_NOC_0] [get_bd_addr_segs user_role_0/CPM2PL_AXI_BRAM/S_AXI/Mem0] -force
-  assign_bd_address -offset 0x020100010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces static_shell/versal_cips_0/CPM_PCIE_NOC_0] [get_bd_addr_segs user_role_0/PL2DDR_CDMA/S_AXI_LITE/Reg] -force
+  assign_bd_address -offset 0x020100008000 -range 0x00008000 -target_address_space [get_bd_addr_spaces static_shell/versal_cips_0/CPM_PCIE_NOC_0] [get_bd_addr_segs user_role_0/PL2DDR_CDMA/S_AXI_LITE/Reg] -force
+  assign_bd_address -offset 0x020100010000 -range 0x00002000 -target_address_space [get_bd_addr_spaces static_shell/versal_cips_0/CPM_PCIE_NOC_0] [get_bd_addr_segs static_shell/axi_bram_ctrl_0/S_AXI/Mem0] -force
   assign_bd_address -offset 0x00000000 -range 0x80000000 -target_address_space [get_bd_addr_spaces static_shell/versal_cips_0/CPM_PCIE_NOC_0] [get_bd_addr_segs static_shell/axi_noc_0/S08_AXI/C0_DDR_LOW0x2] -force
   assign_bd_address -offset 0x000800000000 -range 0x000180000000 -target_address_space [get_bd_addr_spaces static_shell/versal_cips_0/CPM_PCIE_NOC_0] [get_bd_addr_segs static_shell/axi_noc_0/S08_AXI/C0_DDR_LOW1x2] -force
   assign_bd_address -offset 0x020180000000 -range 0x00008000 -target_address_space [get_bd_addr_spaces static_shell/versal_cips_0/FPD_AXI_NOC_0] [get_bd_addr_segs user_role_0/PS2PL_AXI_BRAM/S_AXI/Mem0] -force

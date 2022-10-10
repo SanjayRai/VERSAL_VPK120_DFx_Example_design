@@ -20,8 +20,9 @@ proc create_CPM_BD {} {
 
 proc customize_BD {} {
     add_files ../IP/vpk120_cips_shell_top/vpk120_cips_shell_top.bd
+    add_files ../IP/user_role/user_role.bd
 
 }
 
-create_CPM_BD 
+#create_CPM_BD 
 

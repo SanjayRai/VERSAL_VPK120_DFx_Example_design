@@ -6,6 +6,12 @@ rm -rf ../IP/user_role
 rm -rf ../IP/vpk120_cips_shell_top
 rm -rf ../IP/.Xil/
 rm -rf hd_visual/
+rm -rf gen_files/
+rm -rf static_files/
+rm -rf srai_tandem_dfx_test_*
 rm -rf ../IP/project_X/
 rm -rf ../IP/vivado*.jou
 rm -rf ../IP/vivado*.log
+rm -rf VPK120_top_wrapper.xsa
+rm -rf wdi_info.xml
+rm -rf cpm_gtyp.rcdo

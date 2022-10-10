@@ -34,9 +34,9 @@ proc create_CPM_BD_DFX {} {
     current_bd_design [get_bd_designs vpk120_cips_shell_top]
     set_property -dict [list CONFIG.ENABLE_DFX {true}] [get_bd_cells user_role_0]
     set_property -dict [list CONFIG.LOCK_PROPAGATE {true}] [get_bd_cells user_role_0]
-    set_property APERTURES {{{0x201_0000_0000 128K}}} [get_bd_intf_pins /user_role_0/CPM2PL_S_AXI_INI]
-    set_property APERTURES {{{0x201_8000_0000 128K}}} [get_bd_intf_pins /user_role_0/PS2PL_S_AXI_INI]
-    set_property APERTURES {{{0x202_0000_0000 1G}}} [get_bd_intf_pins /user_role_0/DBG_HUB_INI]
+    set_property APERTURES {{{0x201_0000_0000 64K}}} [get_bd_intf_pins /user_role_0/CPM2PL_S_AXI_INI]
+    set_property APERTURES {{{0x201_8000_0000 32K}}} [get_bd_intf_pins /user_role_0/PS2PL_S_AXI_INI]
+    set_property APERTURES {{{0x202_0000_0000 2M}}} [get_bd_intf_pins /user_role_0/DBG_HUB_INI]
     set_property APERTURES {{{0x0 2G} {0x8_0000_0000 8G}}} [get_bd_intf_pins /user_role_0/PL2DDR_M_AXI_INI]
     save_bd_design
     update_compile_order -fileset sources_1
@@ -66,6 +66,7 @@ proc build_design_DFX { } {
     write_hw_platform -fixed -include_bit -force -file ./VPK120_top_wrapper.xsa
     #  Seperate Stage_1 and Stage_2  during Tandem pdi generation  for testin gpurpouses.
     set_property HD.TANDEM_BITSTREAMS SEPARATE [current_design]
+    write_device_image ./srai_tandem_dfx_test
     
 
 }
