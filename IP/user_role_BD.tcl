@@ -20,7 +20,7 @@ set script_folder [_tcl::get_script_folder]
 ################################################################
 # Check if script is running in correct Vivado version.
 ################################################################
-set scripts_vivado_version 2022.1
+set scripts_vivado_version 2022.2
 set current_vivado_version [version -short]
 
 if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
@@ -124,7 +124,7 @@ if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
 xilinx.com:ip:axi_bram_ctrl:4.1\
 xilinx.com:ip:emb_mem_gen:1.0\
-xilinx.com:ip:axis_ila:1.1\
+xilinx.com:ip:axis_ila:1.2\
 xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:axi_cdma:4.1\
 xilinx.com:ip:axi_dbg_hub:2.0\
@@ -236,7 +236,7 @@ proc create_root_design { parentCell } {
  ] $CPM2PL_AXI_BRAM_bram
 
   # Create instance: CPM2PL_AXI_MM, and set properties
-  set CPM2PL_AXI_MM [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_ila:1.1 CPM2PL_AXI_MM ]
+  set CPM2PL_AXI_MM [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_ila:1.2 CPM2PL_AXI_MM ]
   set_property -dict [ list \
    CONFIG.C_BRAM_CNT {0} \
    CONFIG.C_MON_TYPE {Interface_Monitor} \
@@ -273,7 +273,7 @@ proc create_root_design { parentCell } {
  ] $PS2PL_AXI_BRAM_bram
 
   # Create instance: PS2PL_AXI_MM, and set properties
-  set PS2PL_AXI_MM [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_ila:1.1 PS2PL_AXI_MM ]
+  set PS2PL_AXI_MM [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_ila:1.2 PS2PL_AXI_MM ]
   set_property -dict [ list \
    CONFIG.C_BRAM_CNT {0} \
    CONFIG.C_MON_TYPE {Interface_Monitor} \

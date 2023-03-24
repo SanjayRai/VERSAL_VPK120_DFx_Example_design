@@ -20,7 +20,7 @@ set script_folder [_tcl::get_script_folder]
 ################################################################
 # Check if script is running in correct Vivado version.
 ################################################################
-set scripts_vivado_version 2022.1
+set scripts_vivado_version 2022.2
 set current_vivado_version [version -short]
 
 if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
@@ -132,9 +132,9 @@ if { $bCheckIPs == 1 } {
 xilinx.com:ip:axi_bram_ctrl:4.1\
 xilinx.com:ip:emb_mem_gen:1.0\
 xilinx.com:ip:axi_noc:1.0\
-xilinx.com:ip:axis_ila:1.1\
+xilinx.com:ip:axis_ila:1.2\
 xilinx.com:ip:proc_sys_reset:5.0\
-xilinx.com:ip:versal_cips:3.2\
+xilinx.com:ip:versal_cips:3.3\
 xilinx.com:ip:xlconstant:1.1\
 "
 
@@ -608,7 +608,7 @@ proc create_hier_cell_static_shell { parentCell nameHier } {
  ] [get_bd_pins /static_shell/axi_noc_0/aclk9]
 
   # Create instance: axis_ila_SHELL_BRAM, and set properties
-  set axis_ila_SHELL_BRAM [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_ila:1.1 axis_ila_SHELL_BRAM ]
+  set axis_ila_SHELL_BRAM [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_ila:1.2 axis_ila_SHELL_BRAM ]
   set_property -dict [ list \
    CONFIG.C_BRAM_CNT {0} \
    CONFIG.C_MON_TYPE {Interface_Monitor} \
@@ -620,7 +620,7 @@ proc create_hier_cell_static_shell { parentCell nameHier } {
   set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
 
   # Create instance: versal_cips_0, and set properties
-  set versal_cips_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:versal_cips:3.2 versal_cips_0 ]
+  set versal_cips_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:versal_cips:3.3 versal_cips_0 ]
   set_property -dict [ list \
    CONFIG.CLOCK_MODE {Custom} \
    CONFIG.CPM_CONFIG {\

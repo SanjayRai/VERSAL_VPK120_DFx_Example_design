@@ -24,5 +24,5 @@ proc customize_BD {} {
 
 }
 
-#create_CPM_BD 
+create_CPM_BD 
 
